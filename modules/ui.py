@@ -37,7 +37,7 @@ if platform.system() == "Windows":
 ROOT = None
 POPUP = None
 POPUP_LIVE = None
-ROOT_HEIGHT = 750
+ROOT_HEIGHT = 800
 ROOT_WIDTH = 600
 
 PREVIEW = None
@@ -231,12 +231,12 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     select_face_button = ctk.CTkButton(
         root, text=_("Select a face"), cursor="hand2", command=lambda: select_source_path()
     )
-    select_face_button.place(relx=0.1, rely=0.30, relwidth=0.3, relheight=0.1)
+    select_face_button.place(relx=0.1, rely=0.28, relwidth=0.3, relheight=0.06)
 
     swap_faces_button = ctk.CTkButton(
         root, text="↔", cursor="hand2", command=lambda: swap_faces_paths()
     )
-    swap_faces_button.place(relx=0.45, rely=0.30, relwidth=0.1, relheight=0.1)
+    swap_faces_button.place(relx=0.45, rely=0.28, relwidth=0.1, relheight=0.06)
 
     select_target_button = ctk.CTkButton(
         root,
@@ -244,7 +244,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         cursor="hand2",
         command=lambda: select_target_path(),
     )
-    select_target_button.place(relx=0.6, rely=0.30, relwidth=0.3, relheight=0.1)
+    select_target_button.place(relx=0.6, rely=0.28, relwidth=0.3, relheight=0.06)
 
     keep_fps_value = ctk.BooleanVar(value=modules.globals.keep_fps)
     keep_fps_checkbox = ctk.CTkSwitch(
@@ -257,7 +257,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    keep_fps_checkbox.place(relx=0.1, rely=0.5)
+    keep_fps_checkbox.place(relx=0.1, rely=0.36)
 
     keep_frames_value = ctk.BooleanVar(value=modules.globals.keep_frames)
     keep_frames_switch = ctk.CTkSwitch(
@@ -270,7 +270,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    keep_frames_switch.place(relx=0.1, rely=0.55)
+    keep_frames_switch.place(relx=0.1, rely=0.40)
 
     enhancer_value = ctk.BooleanVar(value=modules.globals.fp_ui["face_enhancer"])
     enhancer_switch = ctk.CTkSwitch(
@@ -283,7 +283,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    enhancer_switch.place(relx=0.1, rely=0.6)
+    enhancer_switch.place(relx=0.1, rely=0.44)
 
     keep_audio_value = ctk.BooleanVar(value=modules.globals.keep_audio)
     keep_audio_switch = ctk.CTkSwitch(
@@ -296,7 +296,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    keep_audio_switch.place(relx=0.6, rely=0.5)
+    keep_audio_switch.place(relx=0.6, rely=0.36)
 
     many_faces_value = ctk.BooleanVar(value=modules.globals.many_faces)
     many_faces_switch = ctk.CTkSwitch(
@@ -309,7 +309,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    many_faces_switch.place(relx=0.6, rely=0.55)
+    many_faces_switch.place(relx=0.6, rely=0.40)
 
     color_correction_value = ctk.BooleanVar(value=modules.globals.color_correction)
     color_correction_switch = ctk.CTkSwitch(
@@ -322,7 +322,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    color_correction_switch.place(relx=0.6, rely=0.6)
+    color_correction_switch.place(relx=0.6, rely=0.44)
 
     #    nsfw_value = ctk.BooleanVar(value=modules.globals.nsfw_filter)
     #    nsfw_switch = ctk.CTkSwitch(root, text='NSFW filter', variable=nsfw_value, cursor='hand2', command=lambda: setattr(modules.globals, 'nsfw_filter', nsfw_value.get()))
@@ -340,7 +340,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             close_mapper_window() if not map_faces.get() else None
         ),
     )
-    map_faces_switch.place(relx=0.1, rely=0.65)
+    map_faces_switch.place(relx=0.1, rely=0.48)
 
     show_fps_value = ctk.BooleanVar(value=modules.globals.show_fps)
     show_fps_switch = ctk.CTkSwitch(
@@ -353,7 +353,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             save_switch_states(),
         ),
     )
-    show_fps_switch.place(relx=0.6, rely=0.65)
+    show_fps_switch.place(relx=0.6, rely=0.48)
 
     def on_vcam_toggle():
         modules.globals.vcam_enabled = vcam_switch_var.get()
@@ -361,7 +361,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         set_vcam_status()
 
     vcam_frame = ctk.CTkFrame(root)
-    vcam_frame.place(relx=0.1, rely=0.7, relwidth=0.8, relheight=0.12)
+    vcam_frame.place(relx=0.1, rely=0.60, relwidth=0.8, relheight=0.10)
     vcam_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
 
     vcam_switch_var = ctk.BooleanVar(value=modules.globals.vcam_enabled)
@@ -475,21 +475,21 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
     start_button = ctk.CTkButton(
         root, text=_("Start"), cursor="hand2", command=lambda: analyze_target(start, root)
     )
-    start_button.place(relx=0.15, rely=0.80, relwidth=0.2, relheight=0.05)
+    start_button.place(relx=0.15, rely=0.72, relwidth=0.2, relheight=0.05)
 
     stop_button = ctk.CTkButton(
         root, text=_("Destroy"), cursor="hand2", command=lambda: destroy()
     )
-    stop_button.place(relx=0.4, rely=0.80, relwidth=0.2, relheight=0.05)
+    stop_button.place(relx=0.4, rely=0.72, relwidth=0.2, relheight=0.05)
 
     preview_button = ctk.CTkButton(
         root, text=_("Preview"), cursor="hand2", command=lambda: toggle_preview()
     )
-    preview_button.place(relx=0.65, rely=0.80, relwidth=0.2, relheight=0.05)
+    preview_button.place(relx=0.65, rely=0.72, relwidth=0.2, relheight=0.05)
 
     # --- Camera Selection ---
     camera_label = ctk.CTkLabel(root, text=_("Select Camera:"))
-    camera_label.place(relx=0.1, rely=0.86, relwidth=0.2, relheight=0.05)
+    camera_label.place(relx=0.1, rely=0.78, relwidth=0.2, relheight=0.03)
 
     available_cameras = get_available_cameras()
     camera_indices, camera_names = available_cameras
@@ -508,7 +508,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             root, variable=camera_variable, values=camera_names
         )
 
-    camera_optionmenu.place(relx=0.35, rely=0.86, relwidth=0.25, relheight=0.05)
+    camera_optionmenu.place(relx=0.35, rely=0.78, relwidth=0.25, relheight=0.03)
 
     live_button = ctk.CTkButton(
         root,
@@ -528,7 +528,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
             else "disabled"
         ),
     )
-    live_button.place(relx=0.65, rely=0.86, relwidth=0.2, relheight=0.05)
+    live_button.place(relx=0.65, rely=0.78, relwidth=0.2, relheight=0.03)
     # --- End Camera Selection ---
 
     # 1) Define a DoubleVar for transparency (0 = fully transparent, 1 = fully opaque)
@@ -552,7 +552,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
 
     # 2) Transparency label and slider (placed ABOVE sharpness)
     transparency_label = ctk.CTkLabel(root, text="Transparency:")
-    transparency_label.place(relx=0.15, rely=0.69, relwidth=0.2, relheight=0.05)
+    transparency_label.place(relx=0.15, rely=0.50, relwidth=0.2, relheight=0.05)
 
     transparency_slider = ctk.CTkSlider(
         root,
@@ -568,7 +568,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         border_width=1,
         corner_radius=3,
     )
-    transparency_slider.place(relx=0.35, rely=0.71, relwidth=0.5, relheight=0.02)
+    transparency_slider.place(relx=0.35, rely=0.52, relwidth=0.5, relheight=0.02)
 
     # 3) Sharpness label & slider
     sharpness_var = ctk.DoubleVar(value=0.0)  # start at 0.0
@@ -577,7 +577,7 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         update_status(f"Sharpness set to {value:.1f}")
 
     sharpness_label = ctk.CTkLabel(root, text="Sharpness:")
-    sharpness_label.place(relx=0.15, rely=0.74, relwidth=0.2, relheight=0.05)
+    sharpness_label.place(relx=0.15, rely=0.54, relwidth=0.2, relheight=0.05)
 
     sharpness_slider = ctk.CTkSlider(
         root,
@@ -593,23 +593,13 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         border_width=1,
         corner_radius=3,
     )
-    sharpness_slider.place(relx=0.35, rely=0.76, relwidth=0.5, relheight=0.02)
+    sharpness_slider.place(relx=0.35, rely=0.56, relwidth=0.5, relheight=0.02)
 
     # Status and link at the bottom
     global status_label
     status_label = ctk.CTkLabel(root, text=None, justify="center")
-    status_label.place(relx=0.1, rely=0.9, relwidth=0.8)
-
-    donate_label = ctk.CTkLabel(
-        root, text="Deep Live Cam", justify="center", cursor="hand2"
-    )
-    donate_label.place(relx=0.1, rely=0.95, relwidth=0.8)
-    donate_label.configure(
-        text_color=ctk.ThemeManager.theme.get("URL").get("text_color")
-    )
-    donate_label.bind(
-        "<Button>", lambda event: webbrowser.open("https://deeplivecam.net")
-    )
+    # 将状态标签移到更合适的位置，避免与按钮冲突
+    status_label.place(relx=0.1, rely=0.84, relwidth=0.8)
 
     return root
 
