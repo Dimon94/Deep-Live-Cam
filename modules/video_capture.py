@@ -1,8 +1,9 @@
-import cv2
-import numpy as np
-from typing import Optional, Tuple, Callable
 import platform
 import threading
+from typing import Callable, List, Optional, Tuple
+
+import cv2
+import numpy as np
 
 # Only import Windows-specific library if on Windows
 if platform.system() == "Windows":
@@ -12,11 +13,12 @@ if platform.system() == "Windows":
 class VideoCapturer:
     def __init__(self, device_index: int):
         self.device_index = device_index
-        self.frame_callback = None
+        self.frame_callback: Optional[Callable[[np.ndarray], Optional[np.ndarray]]] = None
         self._current_frame = None
         self._frame_ready = threading.Event()
         self.is_running = False
         self.cap = None
+        self.outputs: List[Callable[[np.ndarray], None]] = []
 
         # Initialize Windows-specific components if on Windows
         if platform.system() == "Windows":
@@ -69,6 +71,10 @@ class VideoCapturer:
                 self.cap.release()
             return False
 
+    def add_output(self, output_handler: Callable[[np.ndarray], None]) -> None:
+        """Register a frame output handler."""
+        self.outputs.append(output_handler)
+
     def read(self) -> Tuple[bool, Optional[np.ndarray]]:
         """Read a frame from the camera"""
         if not self.is_running or self.cap is None:
@@ -77,8 +83,22 @@ class VideoCapturer:
         ret, frame = self.cap.read()
         if ret:
             self._current_frame = frame
+
+            processed_frame = frame
             if self.frame_callback:
-                self.frame_callback(frame)
+                try:
+                    callback_result = self.frame_callback(frame)
+                    if callback_result is not None:
+                        processed_frame = callback_result
+                except Exception as exc:
+                    print(f"Frame callback error: {exc}")
+
+            for output in self.outputs:
+                try:
+                    output(processed_frame)
+                except Exception as exc:
+                    print(f"Output error: {exc}")
+
             return True, frame
         return False, None
 
@@ -89,6 +109,6 @@ class VideoCapturer:
             self.is_running = False
             self.cap = None
 
-    def set_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
+    def set_frame_callback(self, callback: Callable[[np.ndarray], Optional[np.ndarray]]) -> None:
         """Set callback for frame processing"""
         self.frame_callback = callback

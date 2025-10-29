@@ -1,7 +1,7 @@
 import os
 import webbrowser
 import customtkinter as ctk
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 import cv2
 from cv2_enumerate_cameras import enumerate_cameras  # Add this import
 from PIL import Image, ImageOps
@@ -26,6 +26,7 @@ from modules.utilities import (
     has_image_extension,
 )
 from modules.video_capture import VideoCapturer
+from modules.outputs import VirtualCameraOutput
 from modules.gettext import LanguageManager
 from modules import globals
 import platform
@@ -76,6 +77,13 @@ popup_status_label_live = None
 source_label_dict = {}
 source_label_dict_live = {}
 target_label_dict_live = {}
+vcam_status_label = None
+vcam_switch_var = None
+vcam_addr_var = None
+vcam_port_var = None
+vcam_width_var = None
+vcam_height_var = None
+vcam_fps_var = None
 
 img_ft, vid_ft = modules.globals.file_types
 
@@ -106,6 +114,12 @@ def save_switch_states():
         "show_fps": modules.globals.show_fps,
         "mouth_mask": modules.globals.mouth_mask,
         "show_mouth_mask_box": modules.globals.show_mouth_mask_box,
+        "vcam_enabled": modules.globals.vcam_enabled,
+        "vcam_addr": modules.globals.vcam_addr,
+        "vcam_port": modules.globals.vcam_port,
+        "vcam_width": modules.globals.vcam_width,
+        "vcam_height": modules.globals.vcam_height,
+        "vcam_fps": modules.globals.vcam_fps,
     }
     with open("switch_states.json", "w") as f:
         json.dump(switch_states, f)
@@ -130,13 +144,69 @@ def load_switch_states():
         modules.globals.show_mouth_mask_box = switch_states.get(
             "show_mouth_mask_box", False
         )
+        modules.globals.vcam_enabled = switch_states.get(
+            "vcam_enabled", modules.globals.vcam_enabled
+        )
+        modules.globals.vcam_addr = switch_states.get(
+            "vcam_addr", modules.globals.vcam_addr
+        )
+        try:
+            modules.globals.vcam_port = int(
+                switch_states.get("vcam_port", modules.globals.vcam_port)
+            )
+        except (TypeError, ValueError):
+            pass
+        try:
+            modules.globals.vcam_width = int(
+                switch_states.get("vcam_width", modules.globals.vcam_width)
+            )
+        except (TypeError, ValueError):
+            pass
+        try:
+            modules.globals.vcam_height = int(
+                switch_states.get("vcam_height", modules.globals.vcam_height)
+            )
+        except (TypeError, ValueError):
+            pass
+        try:
+            modules.globals.vcam_fps = int(
+                switch_states.get("vcam_fps", modules.globals.vcam_fps)
+            )
+        except (TypeError, ValueError):
+            pass
     except FileNotFoundError:
         # If the file doesn't exist, use default values
         pass
 
 
+def set_vcam_status(is_running: Optional[bool] = None) -> None:
+    """Update the virtual camera status label based on current state."""
+    global vcam_status_label
+
+    if is_running is not None:
+        modules.globals.webcam_preview_running = is_running
+
+    if vcam_status_label is None:
+        return
+
+    disabled_text = _("Status: Disabled") if _ else "Status: Disabled"
+    idle_text = _("Status: Idle") if _ else "Status: Idle"
+    running_text = _("Status: Running") if _ else "Status: Running"
+
+    if not modules.globals.vcam_enabled:
+        status_text = disabled_text
+    elif modules.globals.webcam_preview_running:
+        status_text = running_text
+    else:
+        status_text = idle_text
+
+    vcam_status_label.configure(text=status_text)
+
+
 def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.CTk:
     global source_label, target_label, status_label, show_fps_switch
+    global vcam_status_label, vcam_switch_var, vcam_addr_var, vcam_port_var
+    global vcam_width_var, vcam_height_var, vcam_fps_var
 
     load_switch_states()
 
@@ -284,6 +354,101 @@ def create_root(start: Callable[[], None], destroy: Callable[[], None]) -> ctk.C
         ),
     )
     show_fps_switch.place(relx=0.6, rely=0.65)
+
+    def on_vcam_toggle():
+        modules.globals.vcam_enabled = vcam_switch_var.get()
+        save_switch_states()
+        set_vcam_status()
+
+    vcam_frame = ctk.CTkFrame(root)
+    vcam_frame.place(relx=0.1, rely=0.7, relwidth=0.8, relheight=0.12)
+    vcam_frame.grid_columnconfigure((0, 1, 2, 3, 4, 5), weight=1)
+
+    vcam_switch_var = ctk.BooleanVar(value=modules.globals.vcam_enabled)
+    vcam_switch = ctk.CTkSwitch(
+        vcam_frame,
+        text=_("Virtual Camera"),
+        variable=vcam_switch_var,
+        cursor="hand2",
+        command=on_vcam_toggle,
+    )
+    vcam_switch.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+
+    vcam_status_label = ctk.CTkLabel(vcam_frame, text="")
+    vcam_status_label.grid(row=0, column=1, padx=10, pady=5, sticky="w", columnspan=2)
+
+    vcam_addr_var = ctk.StringVar(value=str(modules.globals.vcam_addr))
+    vcam_port_var = ctk.StringVar(value=str(modules.globals.vcam_port))
+    vcam_width_var = ctk.StringVar(value=str(modules.globals.vcam_width))
+    vcam_height_var = ctk.StringVar(value=str(modules.globals.vcam_height))
+    vcam_fps_var = ctk.StringVar(value=str(modules.globals.vcam_fps))
+
+    def _update_addr(*_):
+        modules.globals.vcam_addr = vcam_addr_var.get().strip() or "127.0.0.1"
+
+    def _update_port(*_):
+        value = vcam_port_var.get()
+        try:
+            modules.globals.vcam_port = int(value)
+        except ValueError:
+            return
+
+    def _update_width(*_):
+        value = vcam_width_var.get()
+        try:
+            modules.globals.vcam_width = int(value)
+        except ValueError:
+            return
+
+    def _update_height(*_):
+        value = vcam_height_var.get()
+        try:
+            modules.globals.vcam_height = int(value)
+        except ValueError:
+            return
+
+    def _update_fps(*_):
+        value = vcam_fps_var.get()
+        try:
+            modules.globals.vcam_fps = int(value)
+        except ValueError:
+            return
+
+    vcam_addr_var.trace_add("write", _update_addr)
+    vcam_port_var.trace_add("write", _update_port)
+    vcam_width_var.trace_add("write", _update_width)
+    vcam_height_var.trace_add("write", _update_height)
+    vcam_fps_var.trace_add("write", _update_fps)
+
+    addr_label = ctk.CTkLabel(vcam_frame, text=_("Addr"))
+    addr_label.grid(row=1, column=0, padx=10, pady=5, sticky="e")
+    addr_entry = ctk.CTkEntry(vcam_frame, textvariable=vcam_addr_var)
+    addr_entry.grid(row=1, column=1, padx=10, pady=5, sticky="we")
+
+    port_label = ctk.CTkLabel(vcam_frame, text=_("Port"))
+    port_label.grid(row=1, column=2, padx=10, pady=5, sticky="e")
+    port_entry = ctk.CTkEntry(vcam_frame, textvariable=vcam_port_var, width=80)
+    port_entry.grid(row=1, column=3, padx=10, pady=5, sticky="we")
+
+    fps_label = ctk.CTkLabel(vcam_frame, text="FPS")
+    fps_label.grid(row=1, column=4, padx=10, pady=5, sticky="e")
+    fps_entry = ctk.CTkEntry(vcam_frame, textvariable=vcam_fps_var, width=80)
+    fps_entry.grid(row=1, column=5, padx=10, pady=5, sticky="we")
+
+    width_label = ctk.CTkLabel(vcam_frame, text=_("Width"))
+    width_label.grid(row=2, column=0, padx=10, pady=5, sticky="e")
+    width_entry = ctk.CTkEntry(vcam_frame, textvariable=vcam_width_var, width=80)
+    width_entry.grid(row=2, column=1, padx=10, pady=5, sticky="we")
+
+    height_label = ctk.CTkLabel(vcam_frame, text=_("Height"))
+    height_label.grid(row=2, column=2, padx=10, pady=5, sticky="e")
+    height_entry = ctk.CTkEntry(vcam_frame, textvariable=vcam_height_var, width=80)
+    height_entry.grid(row=2, column=3, padx=10, pady=5, sticky="we")
+
+    for widget in (addr_entry, port_entry, fps_entry, width_entry, height_entry):
+        widget.bind("<FocusOut>", lambda *_: save_switch_states())
+
+    set_vcam_status()
 
     mouth_mask_var = ctk.BooleanVar(value=modules.globals.mouth_mask)
     mouth_mask_switch = ctk.CTkSwitch(
@@ -948,27 +1113,20 @@ def create_webcam_preview(camera_index: int):
     prev_time = time.time()
     fps_update_interval = 0.5
     frame_count = 0
-    fps = 0
+    fps = 0.0
+    vcam_output: Optional[VirtualCameraOutput] = None
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    def process_frame(frame):
+        nonlocal source_image, prev_time, frame_count, fps
 
         temp_frame = frame.copy()
 
         if modules.globals.live_mirror:
             temp_frame = cv2.flip(temp_frame, 1)
 
-        if modules.globals.live_resizable:
-            temp_frame = fit_image_to_size(
-                temp_frame, PREVIEW.winfo_width(), PREVIEW.winfo_height()
-            )
-
-        else:
-            temp_frame = fit_image_to_size(
-                temp_frame, PREVIEW.winfo_width(), PREVIEW.winfo_height()
-            )
+        temp_frame = fit_image_to_size(
+            temp_frame, PREVIEW.winfo_width(), PREVIEW.winfo_height()
+        )
 
         if not modules.globals.map_faces:
             if source_image is None and modules.globals.source_path:
@@ -989,7 +1147,6 @@ def create_webcam_preview(camera_index: int):
                 else:
                     temp_frame = frame_processor.process_frame_v2(temp_frame)
 
-        # Calculate and display FPS
         current_time = time.time()
         frame_count += 1
         if current_time - prev_time >= fps_update_interval:
@@ -1008,20 +1165,88 @@ def create_webcam_preview(camera_index: int):
                 2,
             )
 
-        image = cv2.cvtColor(temp_frame, cv2.COLOR_BGR2RGB)
+        return temp_frame
+
+    def display_output(frame):
+        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(image)
         image = ImageOps.contain(
-            image, (temp_frame.shape[1], temp_frame.shape[0]), Image.LANCZOS
+            image, (frame.shape[1], frame.shape[0]), Image.LANCZOS
         )
-        image = ctk.CTkImage(image, size=image.size)
-        preview_label.configure(image=image)
-        ROOT.update()
+        tk_image = ctk.CTkImage(image, size=image.size)
+        preview_label.configure(image=tk_image)
+        preview_label.image = tk_image
+        try:
+            ROOT.update()
+        except Exception:
+            pass
 
-        if PREVIEW.state() == "withdrawn":
-            break
+    def vcam_output_handler(frame):
+        nonlocal vcam_output
 
-    cap.release()
-    PREVIEW.withdraw()
+        if not modules.globals.vcam_enabled:
+            if vcam_output is not None:
+                vcam_output.stop()
+                vcam_output = None
+                set_vcam_status(False)
+            return
+
+        if vcam_output is None:
+            try:
+                vcam_output = VirtualCameraOutput(
+                    width=modules.globals.vcam_width,
+                    height=modules.globals.vcam_height,
+                    addr=modules.globals.vcam_addr,
+                    port=modules.globals.vcam_port,
+                    fps=modules.globals.vcam_fps,
+                )
+                vcam_output.start()
+                set_vcam_status(True)
+            except Exception as exc:
+                update_status(f"Failed to start virtual camera: {exc}")
+                modules.globals.vcam_enabled = False
+                if vcam_switch_var is not None:
+                    vcam_switch_var.set(False)
+                save_switch_states()
+                set_vcam_status(False)
+                return
+
+        frame_to_send = frame
+        target_width = modules.globals.vcam_width
+        target_height = modules.globals.vcam_height
+        if target_width > 0 and target_height > 0 and (
+            frame.shape[1] != target_width or frame.shape[0] != target_height
+        ):
+            frame_to_send = cv2.resize(
+                frame, (target_width, target_height), interpolation=cv2.INTER_LINEAR
+            )
+
+        try:
+            vcam_output.push_frame(frame_to_send)
+        except Exception as exc:
+            update_status(f"Virtual camera error: {exc}")
+            if vcam_output is not None:
+                vcam_output.stop()
+                vcam_output = None
+            set_vcam_status(False)
+
+    cap.set_frame_callback(process_frame)
+    cap.add_output(display_output)
+    cap.add_output(vcam_output_handler)
+
+    try:
+        while True:
+            ret, _ = cap.read()
+            if not ret:
+                break
+            if PREVIEW.state() == "withdrawn":
+                break
+    finally:
+        cap.release()
+        if vcam_output is not None:
+            vcam_output.stop()
+        set_vcam_status(False)
+        PREVIEW.withdraw()
 
 
 def create_source_target_popup_for_webcam(

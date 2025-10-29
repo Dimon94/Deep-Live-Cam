@@ -41,6 +41,14 @@ camera_input_combobox: Any | None = None # Placeholder for UI element if needed
 webcam_preview_running: bool = False
 show_fps: bool = False
 
+# Virtual Camera Options
+vcam_enabled: bool = False
+vcam_width: int = 1280
+vcam_height: int = 720
+vcam_addr: str = '127.0.0.1'
+vcam_port: int = 1234
+vcam_fps: int = 30
+
 # System Configuration
 max_memory: int | None = None        # Memory limit in GB? (Needs clarification)
 execution_providers: List[str] = []  # e.g., ['CUDAExecutionProvider', 'CPUExecutionProvider']
